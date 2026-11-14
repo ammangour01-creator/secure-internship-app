@@ -1,0 +1,52 @@
+@base = http://localhost:3000/api/internships
+
+### List (page 1, 3 per page)
+GET {{base}}?page=1&limit=3
+
+### Filter by domain and mode
+GET {{base}}?domain=Full Stack Development&mode=Remote
+
+### Search
+GET {{base}}?q=sql
+
+### Detail
+GET {{base}}/INT-102
+
+### Detail (not found -> 404)
+GET {{base}}/INT-999
+
+### Create
+POST {{base}}
+Content-Type: application/json
+
+{
+  "title": "QA Intern",
+  "domain": "Quality Assurance",
+  "mode": "Remote",
+  "skills": ["Testing"],
+  "openings": 2
+}
+
+### Create with invalid data (-> 400)
+POST {{base}}
+Content-Type: application/json
+
+{
+  "title": "A",
+  "mode": "Moon",
+  "openings": -1
+}
+
+### Update (change INT-106 to the id you created)
+PUT {{base}}/INT-106
+Content-Type: application/json
+
+{
+  "title": "QA Intern",
+  "domain": "Quality Assurance",
+  "mode": "Hybrid",
+  "openings": 4
+}
+
+### Delete
+DELETE {{base}}/INT-106

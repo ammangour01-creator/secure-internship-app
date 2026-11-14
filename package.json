@@ -1,0 +1,21 @@
+{
+  "name": "secure-internship-app",
+  "version": "1.0.0",
+  "description": "Internship board (plain JS) + Express/SQLite API with a secure application form",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "db:schema": "node -e \"require('./server/src/db').openDb(); console.log('Schema applied.')\"",
+    "seed": "node server/seed/seed.js",
+    "test": "node --test",
+    "test:unit": "node --test tests/validation.test.js tests/security.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^13.2.0",
+    "express": "^4.21.0"
+  }
+}

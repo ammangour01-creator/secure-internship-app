@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Internship Board</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#results">Skip to results</a>
+
+  <header class="site-header">
+    <h1>Internship Board</h1>
+    <p>Search, filter and apply. All internships are fictional.</p>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="Search and filters">
+      <form id="filter-form" role="search">
+        <div class="field">
+          <label for="search">Search</label>
+          <input type="search" id="search" name="q" placeholder="e.g. SQL, Pune, Figma" autocomplete="off" maxlength="60" />
+        </div>
+        <div class="field">
+          <label for="domain">Domain</label>
+          <select id="domain" name="domain"><option value="">All domains</option></select>
+        </div>
+        <div class="field">
+          <label for="mode">Work mode</label>
+          <select id="mode" name="mode"><option value="">All modes</option></select>
+        </div>
+        <button type="button" id="reset" class="btn btn-secondary">Reset filters</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="results-heading">
+      <h2 id="results-heading" class="visually-hidden">Internship results</h2>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <div id="state" class="state" hidden></div>
+      <ul id="results" class="grid" aria-busy="false"></ul>
+      <nav id="pager" class="pager" aria-label="Pagination" hidden>
+        <button type="button" id="prev" class="btn btn-secondary">Previous</button>
+        <span id="page-info"></span>
+        <button type="button" id="next" class="btn btn-secondary">Next</button>
+      </nav>
+    </section>
+  </main>
+
+  <dialog id="detail" aria-labelledby="detail-title">
+    <div class="dialog-head">
+      <h2 id="detail-title"></h2>
+      <button type="button" id="detail-close" class="btn btn-secondary" aria-label="Close dialog">Close</button>
+    </div>
+    <p id="detail-meta" class="meta"></p>
+    <ul id="detail-skills" class="tags" aria-label="Skills"></ul>
+
+    <form id="apply-form" novalidate>
+      <h3>Apply</h3>
+      <div class="field">
+        <label for="f-name">Full name</label>
+        <input id="f-name" name="name" type="text" autocomplete="name" maxlength="80" required aria-describedby="f-name-err" />
+        <p class="field-error" id="f-name-err"></p>
+      </div>
+      <div class="field">
+        <label for="f-email">Email</label>
+        <input id="f-email" name="email" type="email" autocomplete="email" maxlength="254" required aria-describedby="f-email-err" />
+        <p class="field-error" id="f-email-err"></p>
+      </div>
+      <div class="field">
+        <label for="f-url">Portfolio link <span class="optional">(optional)</span></label>
+        <input id="f-url" name="portfolio_url" type="url" inputmode="url" autocomplete="url" maxlength="300" placeholder="https://" aria-describedby="f-url-err" />
+        <p class="field-error" id="f-url-err"></p>
+      </div>
+      <button type="submit" id="submit" class="btn">Submit application</button>
+    </form>
+    <p id="form-status" class="form-status" role="status" aria-live="polite" tabindex="-1"></p>
+  </dialog>
+
+  <footer class="site-footer"><p>Built with plain HTML, CSS and JavaScript on a Node.js and SQLite API.</p></footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
