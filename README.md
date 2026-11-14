@@ -5,8 +5,8 @@ All data is fictional (EdVyro training material).
 
 | | |
 |---|---|
-| **Live app** | _add your Render URL here_ |
-| **Repository** | _add your GitHub URL here_ |
+| **Live app** | https://secure-internship-app.onrender.com |
+| **Repository** | https://github.com/ammangour01-creator/secure-internship-app |
 | **2-minute walkthrough** | _add your video link here_ (script in [WALKTHROUGH.md](WALKTHROUGH.md)) |
 
 ## What it does
