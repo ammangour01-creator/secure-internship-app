@@ -7,7 +7,7 @@ All data is fictional (EdVyro training material).
 |---|---|
 | **Live app** | https://secure-internship-app.onrender.com |
 | **Repository** | https://github.com/ammangour01-creator/secure-internship-app |
-| **2-minute walkthrough** | _add your video link here_ (script in [WALKTHROUGH.md](WALKTHROUGH.md)) |
+| **2-minute walkthrough** | https://youtu.be/OyQgrkO-9gY (script in [WALKTHROUGH.md](WALKTHROUGH.md)) |
 
 ## What it does
 - Loads internships from the API with **loading, empty, error and Retry** states, search, domain and work-mode filters, and pagination.
