@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Internship Board</title>
+  <meta name="description" content="Search, filter and apply to fictional internships. Accessible, responsive and keyboard friendly." />
+  <meta name="theme-color" content="#2354d6" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232354d6'/%3E%3Crect x='14' y='8' width='4' height='16' rx='2' fill='white'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -15,6 +18,7 @@
   </header>
 
   <main>
+    <noscript><p class="state error">This board needs JavaScript to load internships. Please enable it and reload the page.</p></noscript>
     <section class="controls" aria-label="Search and filters">
       <form id="filter-form" role="search">
         <div class="field">
@@ -34,7 +38,7 @@
     </section>
 
     <section aria-labelledby="results-heading">
-      <h2 id="results-heading" class="visually-hidden">Internship results</h2>
+      <h2 id="results-heading" class="visually-hidden" tabindex="-1">Internship results</h2>
       <p id="status" class="status" role="status" aria-live="polite"></p>
       <div id="state" class="state" hidden></div>
       <ul id="results" class="grid" aria-busy="false"></ul>

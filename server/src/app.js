@@ -5,6 +5,7 @@ const { validateInternship, parsePagination, MODES } = require("./validate");
 const { validateApplication } = require("./applicationValidate");
 const { securityHeaders, createRateLimiter } = require("./security");
 const { createLogger } = require("./logger");
+const { version } = require("../../package.json");
 
 // Builds the Express app. Everything configurable is a parameter so tests can
 // inject an in-memory database, tiny rate limits and a log collector.
@@ -19,19 +20,26 @@ function createApp({
 } = {}) {
   const app = express();
   const logger = createLogger(logWrite);
+  const startedAt = Date.now();
+  app.locals.logger = logger;
 
   app.disable("x-powered-by");
   if (trustProxy) app.set("trust proxy", Number(trustProxy) || trustProxy); // needed behind Render/Heroku-style proxies
 
   app.use(logger.requestLogger);
   app.use(securityHeaders);
+  // API answers and health checks must never be cached by browsers or proxies.
+  app.use(["/api", "/healthz", "/readyz"], (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store");
+    next();
+  });
   app.use("/api", createRateLimiter(generalLimit));
   app.use(express.json({ limit: "10kb" }));
 
   // ---------- helpers: one response format for everything ----------
   const ok = (res, data, extra = {}, code = 200) => res.status(code).json({ status: "success", data, ...extra });
   const fail = (res, code, errorCode, message, details) => {
-    const error = { code: errorCode, message };
+    const error = { code: errorCode, message, request_id: res.req && res.req.id }; // lets a user quote the id from the logs
     if (details) error.details = details;
     return res.status(code).json({ status: "error", error });
   };
@@ -68,8 +76,23 @@ function createApp({
     next();
   }
 
+  // ---------- health checks ----------
+  // /healthz: is the process alive?  /readyz: can it reach its database?  (Render polls /healthz.)
+  app.get("/healthz", (req, res) =>
+    res.json({ status: "ok", version, uptime_s: Math.round((Date.now() - startedAt) / 1000) })
+  );
+  app.get("/readyz", (req, res) => {
+    try {
+      db.prepare("SELECT 1").get();
+      res.json({ status: "ready", db: "ok" });
+    } catch (err) {
+      logger.log({ level: "error", event: "readiness_failed", id: req.id, message: String(err.message).slice(0, 200) });
+      res.status(503).json({ status: "unavailable", db: "error" });
+    }
+  });
+
   // ---------- routes ----------
-  app.get("/api/health", (req, res) => ok(res, { up: true }));
+  app.get("/api/health", (req, res) => ok(res, { up: true, version }));
 
   // Distinct values for the filter dropdowns
   app.get("/api/filters", (req, res) => {
@@ -192,15 +215,22 @@ function createApp({
   });
 
   // ---------- frontend ----------
-  app.use(express.static(clientDir, { index: "index.html", maxAge: "1h" }));
+  // maxAge 0 + ETag: browsers always revalidate, so a redeploy is picked up immediately and unchanged files cost only a 304.
+  app.use(express.static(clientDir, { index: "index.html", maxAge: 0 }));
 
   // ---------- errors ----------
   app.use("/api", (req, res) => fail(res, 404, "NOT_FOUND", "Route not found."));
+  app.use((req, res) =>
+    res
+      .status(404)
+      .type("html")
+      .send('<!doctype html><html lang="en"><meta charset="utf-8"><title>Page not found</title><body><p>Page not found. <a href="/">Back to the internship board</a></p></body></html>')
+  );
 
   app.use((err, req, res, next) => {
     if (err.type === "entity.parse.failed") return fail(res, 400, "INVALID_JSON", "Request body is not valid JSON.");
     if (err.type === "entity.too.large") return fail(res, 413, "PAYLOAD_TOO_LARGE", "Request body is too large.");
-    logger.log({ level: "error", id: req.id, message: String(err.message).slice(0, 200) }); // message only, never bodies
+    logger.log({ level: "error", event: "unhandled_error", id: req.id, message: String(err.message).slice(0, 200) }); // message only, never bodies
     fail(res, 500, "INTERNAL_ERROR", "Something went wrong on the server.");
   });
 

@@ -5,7 +5,7 @@ const PAGE_SIZE = 6;
 const $ = (id) => document.getElementById(id);
 const els = {
   form: $("filter-form"), search: $("search"), domain: $("domain"), mode: $("mode"), reset: $("reset"),
-  status: $("status"), state: $("state"), results: $("results"),
+  status: $("status"), heading: $("results-heading"), state: $("state"), results: $("results"),
   pager: $("pager"), prev: $("prev"), next: $("next"), pageInfo: $("page-info"),
   dialog: $("detail"), title: $("detail-title"), meta: $("detail-meta"), skills: $("detail-skills"),
   close: $("detail-close"), apply: $("apply-form"), submit: $("submit"), formStatus: $("form-status"),
@@ -17,6 +17,18 @@ let current = null;          // internship shown in the dialog
 let opener = null;           // element that opened the dialog (focus goes back here)
 let controller = null;       // aborts an older request if a newer one starts
 let searchTimer = null;
+let focusResultsAfterLoad = false; // set when the user pages, so keyboard focus is not left on a stale button
+
+// ---------- filters live in the URL (?q=&domain=&mode=&page=) so refresh, back and shared links keep the view ----------
+function syncUrl() {
+  const p = new URLSearchParams();
+  if (els.search.value.trim()) p.set("q", els.search.value.trim());
+  if (els.domain.value) p.set("domain", els.domain.value);
+  if (els.mode.value) p.set("mode", els.mode.value);
+  if (page > 1) p.set("page", String(page));
+  const qs = p.toString();
+  history.replaceState(null, "", qs ? `?${qs}` : location.pathname);
+}
 
 // ---------- small helpers ----------
 function el(tag, className, text) {
@@ -68,7 +80,10 @@ function showState(kind, title, message, withRetry) {
     const retry = el("button", "btn", "Try again");
     retry.type = "button";
     retry.id = "retry";
-    retry.addEventListener("click", loadList);
+    retry.addEventListener("click", () => {
+      if (els.domain.options.length === 1) loadFilters(); // the dropdowns may have failed to load too
+      loadList();
+    });
     els.state.append(retry);
   }
   els.state.hidden = false;
@@ -103,11 +118,16 @@ async function loadList() {
   if (els.domain.value) params.set("domain", els.domain.value);
   if (els.mode.value) params.set("mode", els.mode.value);
 
+  syncUrl();
   setStatus("Loading internships…");
   showSkeletons();
   try {
     const body = await api(`/api/internships?${params}`, { signal: controller.signal });
     const { data, pagination } = body;
+    if (data.length === 0 && page > 1) { // e.g. an old link with page=9: fall back to the first page
+      page = 1;
+      return loadList();
+    }
     if (data.length === 0) {
       setStatus("No internships found.");
       showState(
@@ -125,6 +145,7 @@ async function loadList() {
     els.pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
     els.prev.disabled = !pagination.hasPrev;
     els.next.disabled = !pagination.hasNext;
+    if (focusResultsAfterLoad) { focusResultsAfterLoad = false; els.heading.focus(); }
   } catch (err) {
     if (err.name === "AbortError") return;
     setStatus("Could not load internships.");
@@ -263,8 +284,19 @@ els.reset.addEventListener("click", () => {
   els.search.value = ""; els.domain.value = ""; els.mode.value = "";
   page = 1; loadList(); els.search.focus();
 });
-els.prev.addEventListener("click", () => { page = Math.max(1, page - 1); loadList(); });
-els.next.addEventListener("click", () => { page += 1; loadList(); });
+els.prev.addEventListener("click", () => { page = Math.max(1, page - 1); focusResultsAfterLoad = true; loadList(); });
+els.next.addEventListener("click", () => { page += 1; focusResultsAfterLoad = true; loadList(); });
 
-loadFilters();
-loadList();
+// Start: read the URL, load the dropdown options, then restore the selected values and load the list.
+async function init() {
+  const params = new URLSearchParams(location.search);
+  els.search.value = (params.get("q") || "").slice(0, 60);
+  const wanted = { domain: params.get("domain") || "", mode: params.get("mode") || "" };
+  const n = Number(params.get("page"));
+  page = Number.isInteger(n) && n >= 1 ? n : 1;
+  await loadFilters();
+  els.domain.value = wanted.domain; // an unknown value simply selects "All"
+  els.mode.value = wanted.mode;
+  loadList();
+}
+init();

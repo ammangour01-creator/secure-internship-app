@@ -167,3 +167,92 @@ test("bad JSON gives 400 and oversized bodies give 413", async () => {
   assert.equal(r.res.status, 413);
   t.close();
 });
+
+// ---------- Task 5: production-readiness checks ----------
+
+test("health checks: /healthz is alive, /readyz confirms the database and turns 503 when it is gone", async () => {
+  const t = await start();
+  let r = await t.call("/healthz");
+  assert.equal(r.res.status, 200);
+  assert.equal(r.body.status, "ok");
+  assert.match(r.body.version, /^\d+\.\d+\.\d+/);
+  assert.ok(r.body.uptime_s >= 0);
+  assert.equal(r.res.headers.get("cache-control"), "no-store");
+
+  r = await t.call("/readyz");
+  assert.equal(r.res.status, 200);
+  assert.deepEqual(r.body, { status: "ready", db: "ok" });
+
+  t.db.close(); // simulate a lost database
+  r = await t.call("/readyz");
+  assert.equal(r.res.status, 503);
+  assert.equal(r.body.status, "unavailable");
+  t.close();
+});
+
+test("every response carries a request id that matches the error body and the log line", async () => {
+  const t = await start();
+  const r = await t.call("/api/internships/INT-999");
+  assert.equal(r.res.status, 404);
+  const id = r.res.headers.get("x-request-id");
+  assert.match(id, /^[0-9a-f]{12}$/);
+  assert.equal(r.body.error.request_id, id);
+  const line = t.logs.map((l) => JSON.parse(l)).find((e) => e.id === id);
+  assert.ok(line, "a log line with the same id exists");
+  assert.equal(line.level, "warn");
+  assert.equal(line.status, 404);
+  t.close();
+});
+
+test("unknown API routes answer JSON 404, unknown pages answer a friendly HTML 404", async () => {
+  const t = await start();
+  let r = await t.call("/api/does-not-exist");
+  assert.equal(r.res.status, 404);
+  assert.equal(r.body.error.code, "NOT_FOUND");
+  r = await t.call("/no-such-page");
+  assert.equal(r.res.status, 404);
+  assert.match(r.res.headers.get("content-type"), /html/);
+  t.close();
+});
+
+test("the frontend is served by the same app, with security headers and revalidation (ETag)", async () => {
+  const t = await start();
+  for (const [path, type] of [["/", /html/], ["/app.js", /javascript/], ["/style.css", /css/]]) {
+    const r = await t.call(path);
+    assert.equal(r.res.status, 200, path);
+    assert.match(r.res.headers.get("content-type"), type, path);
+    assert.match(r.res.headers.get("content-security-policy"), /default-src 'self'/, path);
+    assert.ok(r.res.headers.get("etag"), `${path} has an ETag`);
+  }
+  t.close();
+});
+
+test("an unexpected failure gives a generic 500, hides internals and is logged at error level", async () => {
+  const t = await start();
+  t.db.close(); // every query now throws
+  const r = await t.call("/api/internships");
+  assert.equal(r.res.status, 500);
+  assert.equal(r.body.error.code, "INTERNAL_ERROR");
+  assert.ok(!JSON.stringify(r.body).toLowerCase().includes("database"), "no internal details in the response");
+  const entry = t.logs.map((l) => JSON.parse(l)).find((e) => e.event === "unhandled_error");
+  assert.ok(entry, "the error was logged");
+  assert.equal(entry.level, "error");
+  assert.equal(entry.id, r.body.error.request_id);
+  t.close();
+});
+
+test("a page number past the end returns an empty list (the UI falls back to page 1)", async () => {
+  const t = await start();
+  const r = await t.call("/api/internships?page=99&limit=6");
+  assert.equal(r.res.status, 200);
+  assert.deepEqual(r.body.data, []);
+  assert.equal(r.body.pagination.hasNext, false);
+  t.close();
+});
+
+test("API responses are never cacheable", async () => {
+  const t = await start();
+  assert.equal((await t.call("/api/internships")).res.headers.get("cache-control"), "no-store");
+  assert.equal((await t.call("/api/filters")).res.headers.get("cache-control"), "no-store");
+  t.close();
+});

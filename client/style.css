@@ -14,7 +14,7 @@ h1, h2, h3, p { margin-top: 0; }
 .site-header h1 { margin-bottom: 4px; }
 .site-header p { color: var(--muted); margin-bottom: 0; }
 
-:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 
 .controls form { display: grid; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

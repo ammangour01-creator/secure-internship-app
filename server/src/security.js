@@ -50,7 +50,7 @@ function createRateLimiter({ windowMs = 60_000, max = 100, now = Date.now } = {}
       res.setHeader("Retry-After", String(retryAfter));
       return res.status(429).json({
         status: "error",
-        error: { code: "RATE_LIMITED", message: `Too many requests. Try again in ${retryAfter} seconds.` },
+        error: { code: "RATE_LIMITED", message: `Too many requests. Try again in ${retryAfter} seconds.`, request_id: req.id },
       });
     }
     next();
