@@ -63,7 +63,7 @@ No framework, no web fonts, no images, no third-party requests (also guarded by 
 
 | Performance | Accessibility | Best practices | SEO |
 |---|---|---|---|
-| ___ | ___ | ___ | ___ |
+|100|100|100|100|
 
 ## 5. Security
 See [SECURITY.md](../SECURITY.md). Verified by tests: rate limit (429 + Retry-After), CSP and other headers, SQL injection strings treated as data, unsafe URLs, duplicates, logs without applicant data.
